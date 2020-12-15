@@ -47,6 +47,7 @@ class Instrument(object):
     name: str
     currency: str
     lot: int
+    minPriceIncrement: float
 
 
 class Operation(object):

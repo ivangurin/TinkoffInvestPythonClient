@@ -1,4 +1,3 @@
-import datetime
 import pytz
 import requests
 import urllib
@@ -9,20 +8,10 @@ class Client(object):
 
     url: str = "https://api-invest.tinkoff.ru/openapi/"
     token: str
-    accountId: str
-    accountIisId: str
 
     def __init__(self, iv_token: str):
 
         self.token = iv_token
-
-        lt_accounts = self.getAccounts()
-
-        for lo_account in lt_accounts:
-            if lo_account.type == "Tinkoff":
-                self.accountId = lo_account.id
-            elif lo_account.type == "TinkoffIis":
-                self.accountIisId = lo_account.id
 
     def getAccounts(self) -> list[Account]:
 
@@ -110,6 +99,64 @@ class Client(object):
 
         return lt_instruments
 
+    def getInstrumentByFigi(self, iv_figi: str) -> Instrument:
+
+        ls_params = {
+            "figi": iv_figi
+        }
+
+        lv_url = self.url + "/market/search/by-figi?" + urllib.parse.urlencode(ls_params)
+
+        try:
+            ls_response = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
+        except Exception as lx_exception:
+            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
+
+        if ls_response["status"] == "Error":
+            raise Exception(ls_response["payload"]["message"])
+
+        lo_instrument = Instrument()
+
+        lo_instrument.type = ls_response["payload"]["type"]
+        lo_instrument.figi = ls_response["payload"]["figi"]
+        lo_instrument.ticker = ls_response["payload"]["ticker"]
+        lo_instrument.isin = ls_response["payload"]["isin"]
+        lo_instrument.name = ls_response["payload"]["name"]
+        lo_instrument.currency = ls_response["payload"]["currency"]
+        lo_instrument.lot = ls_response["payload"]["lot"]
+        lo_instrument.minPriceIncrement = ls_response["payload"]["minPriceIncrement"]
+
+        return lo_instrument
+
+    def getInstrumentByTicker(self, iv_ticker: str) -> Instrument:
+
+        ls_params = {
+            "ticker": iv_ticker
+        }
+
+        lv_url = self.url + "/market/search/by-ticker?" + urllib.parse.urlencode(ls_params)
+
+        try:
+            ls_response = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
+        except Exception as lx_exception:
+            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
+
+        if ls_response["status"] == "Error":
+            raise Exception(ls_response["payload"]["message"])
+
+        lo_instrument = Instrument()
+
+        lo_instrument.type = ls_response["payload"]["instruments"][0]["type"]
+        lo_instrument.figi = ls_response["payload"]["instruments"][0]["figi"]
+        lo_instrument.ticker = ls_response["payload"]["instruments"][0]["ticker"]
+        lo_instrument.isin = ls_response["payload"]["instruments"][0]["isin"]
+        lo_instrument.name = ls_response["payload"]["instruments"][0]["name"]
+        lo_instrument.currency = ls_response["payload"]["instruments"][0]["currency"]
+        lo_instrument.lot = ls_response["payload"]["instruments"][0]["lot"]
+        lo_instrument.minPriceIncrement = ls_response["payload"]["instruments"][0]["minPriceIncrement"]
+
+        return lo_instrument
+
     def getCurrencies(self) -> list[Instrument]:
 
         lv_url = self.url + "market/currencies"
@@ -131,18 +178,17 @@ class Client(object):
 
         lt_instruments: list[Instrument] = []
 
-        # [{"figi":"BBG0013HGFT4","ticker":"USD000UTSTOM","minPriceIncrement":0.0025,
-        # "lot":1000,"currency":"RUB","name":"Доллар США","type":"Currency"}
         for ls_instrument in ls_response["payload"]["instruments"]:
 
             lo_instrument = Instrument()
 
             lo_instrument.type = ls_instrument["type"]
-            lo_instrument.ticker = ls_instrument["ticker"]
             lo_instrument.figi = ls_instrument["figi"]
+            lo_instrument.ticker = ls_instrument["ticker"]
             lo_instrument.name = ls_instrument["name"]
             lo_instrument.currency = ls_instrument["currency"]
             lo_instrument.lot = ls_instrument["lot"]
+            lo_instrument.minPriceIncrement = ls_instrument["minPriceIncrement"]
 
             lt_instruments.append(lo_instrument)
 
@@ -174,12 +220,15 @@ class Client(object):
             lo_instrument = Instrument()
 
             lo_instrument.type = ls_instrument["type"]
-            lo_instrument.ticker = ls_instrument["ticker"]
             lo_instrument.figi = ls_instrument["figi"]
+            lo_instrument.ticker = ls_instrument["ticker"]
             lo_instrument.isin = ls_instrument["isin"]
             lo_instrument.name = ls_instrument["name"]
             lo_instrument.currency = ls_instrument["currency"]
             lo_instrument.lot = ls_instrument["lot"]
+
+            if "minPriceIncrement" in ls_instrument:
+                lo_instrument.minPriceIncrement = ls_instrument["minPriceIncrement"]
 
             lt_instruments.append(lo_instrument)
 
@@ -213,12 +262,15 @@ class Client(object):
             lo_instrument = Instrument()
 
             lo_instrument.type = ls_instrument["type"]
-            lo_instrument.ticker = ls_instrument["ticker"]
             lo_instrument.figi = ls_instrument["figi"]
+            lo_instrument.ticker = ls_instrument["ticker"]
             lo_instrument.isin = ls_instrument["isin"]
             lo_instrument.name = ls_instrument["name"]
             lo_instrument.currency = ls_instrument["currency"]
             lo_instrument.lot = ls_instrument["lot"]
+
+            if "minPriceIncrement" in ls_instrument:
+                lo_instrument.minPriceIncrement = ls_instrument["minPriceIncrement"]
 
             lt_instruments.append(lo_instrument)
 
@@ -252,12 +304,13 @@ class Client(object):
             lo_instrument = Instrument()
 
             lo_instrument.type = ls_instrument["type"]
-            lo_instrument.ticker = ls_instrument["ticker"]
             lo_instrument.figi = ls_instrument["figi"]
+            lo_instrument.ticker = ls_instrument["ticker"]
             lo_instrument.isin = ls_instrument["isin"]
             lo_instrument.name = ls_instrument["name"]
             lo_instrument.currency = ls_instrument["currency"]
             lo_instrument.lot = ls_instrument["lot"]
+            lo_instrument.minPriceIncrement = ls_instrument["minPriceIncrement"]
 
             lt_instruments.append(lo_instrument)
 
@@ -313,7 +366,6 @@ class Client(object):
             iv_figi: str = "") -> list[Operation]:
 
         ls_params = {
-            # "brokerAccountId": self.accountId,
             "from": io_from.isoformat(),
             "to": io_to.isoformat()
         }
