@@ -1,8 +1,8 @@
+import datetime
 import pytz
 import requests
 import urllib
-from tinvest.objects import *
-
+from .objects import *
 
 class Client(object):
 

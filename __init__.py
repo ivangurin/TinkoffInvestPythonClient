@@ -1,2 +1,2 @@
-from tinvest.objects import *
-from tinvest.client import *
+from .objects import *
+from .client import *

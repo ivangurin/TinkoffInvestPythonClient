@@ -61,6 +61,15 @@ class Operation(object):
     currency: str
     date: datetime
 
+    def __init__(self):
+        self.id = ""
+        self.type = ""
+        self.figi = ""
+        self.quantity = ""
+        self.currency = ""
+        self.price = 0
+        self.value = 0
+        self.commission = 0
 
 class Candle(object):
 
