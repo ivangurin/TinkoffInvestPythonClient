@@ -50,14 +50,14 @@ class Instrument(object):
 
 
 class Operation(object):
-    id: str = ""
-    type: str = ""
-    figi: str = ""
-    quantity: int = 0
-    price: float = 0
-    value: float = 0
-    commission: float = 0
-    currency: str = ""
+    id: str
+    type: str
+    figi: str
+    quantity: int
+    price: float
+    value: float
+    commission: float
+    currency: str
     date: datetime
 
 
