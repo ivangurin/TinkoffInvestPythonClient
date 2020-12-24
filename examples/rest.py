@@ -27,13 +27,13 @@ for lo_instrument in lt_instruments:
     print(lo_instrument.__dict__)
 
 # Get candles
-lt_candles = lo_client.getCandles(iv_figi="BBG000B9XRY4", iv_interval=tinvest.Interval.day, iv_days=10)
+lt_candles = lo_client.getCandles(iv_ticker="AAPL", iv_interval=tinvest.Interval.day, iv_days=10)
 
 for lo_candle in lt_candles:
     print(lo_candle.__dict__)
 
 # Create order
-lv_orderId = lo_client.createLimitOrder(iv_figi="BBG000B9XRY4", iv_operation="Buy", iv_lots=1, iv_price=65)
+lv_orderId = lo_client.createLimitOrder(iv_ticker="AAPL", iv_operation="Buy", iv_lots=1, iv_price=65)
 
 print(lv_orderId)
 

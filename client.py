@@ -316,7 +316,7 @@ class Client(object):
 
         return lt_instruments
 
-    def getCandles(self, iv_figi: str, iv_interval: str, iv_days: int = 0, iv_hours: int = 0) -> list[Candle]:
+    def getCandles(self, iv_ticker: str, iv_interval: str, iv_days: int = 0, iv_hours: int = 0) -> list[Candle]:
 
         lo_now = datetime.datetime.now(tz=pytz.timezone("Europe/Moscow"))
         lo_prev = lo_now - datetime.timedelta(days=iv_days, hours=iv_hours)
@@ -325,7 +325,7 @@ class Client(object):
         lo_to = datetime.datetime(lo_now.year, lo_now.month, lo_now.day, 23, 59, 59, 0, pytz.timezone("Europe/Moscow"))
 
         ls_params = {
-            "figi": iv_figi,
+            "figi": self.getInstrumentByTicker(iv_ticker).figi,
             "interval": iv_interval,
             "from": lo_from.isoformat(),
             "to": lo_to.isoformat()
@@ -363,15 +363,15 @@ class Client(object):
     def getOperations(self,
             io_from: datetime = datetime.datetime.now(tz=pytz.timezone("Europe/Moscow")) - datetime.timedelta(days=365),
             io_to: datetime = datetime.datetime.now(tz=pytz.timezone("Europe/Moscow")),
-            iv_figi: str = "") -> list[Operation]:
+            iv_ticker: str = "") -> list[Operation]:
 
         ls_params = {
             "from": io_from.isoformat(),
             "to": io_to.isoformat()
         }
 
-        if iv_figi != "":
-            ls_params["figi"] = iv_figi
+        if iv_ticker != "":
+            ls_params["figi"] = self.getInstrumentByTicker(iv_ticker).figi
 
         lv_url = self.url + "operations?" + urllib.parse.urlencode(ls_params)
 
@@ -466,10 +466,10 @@ class Client(object):
 
         return lt_orders
 
-    def createLimitOrder(self, iv_figi: str, iv_operation: str, iv_lots: int, iv_price: float, iv_account_id: str = ""):
+    def createLimitOrder(self, iv_ticker: str, iv_operation: str, iv_lots: int, iv_price: float, iv_account_id: str = ""):
 
         ls_params = {
-            "figi": iv_figi
+            "figi": self.getInstrumentByTicker(iv_ticker).figi
         }
 
         if iv_account_id != "":
@@ -495,10 +495,10 @@ class Client(object):
 
         return ls_response["payload"]["orderId"]
 
-    def createMarketOrder(self, iv_figi: str, iv_operation: str, iv_lots: int):
+    def createMarketOrder(self, iv_ticker: str, iv_operation: str, iv_lots: int):
 
         ls_params = {
-            "figi": iv_figi,
+            "figi": self.getInstrumentByTicker(iv_ticker).figi
         }
 
         ls_data = {
