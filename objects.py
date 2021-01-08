@@ -73,29 +73,29 @@ class Operation(object):
 
 class Candle(object):
 
-    type: str
+    time: str
+    high: int
     open: int
-    max: int
-    min: int
     close: int
+    low: int
     volume: int
     shadow_high: int
     shadow_low: int
     body: int
-    time: str
+    type: str
 
     def eval(self):
 
         if self.open < self.close:
             self.type = "green"
-            self.shadow_high = self.max - self.close
+            self.shadow_high = self.high - self.close
             self.body = self.close - self.open
-            self.shadow_low = self.open - self.min
+            self.shadow_low = self.open - self.low
         else:
             self.type = "red"
-            self.shadow_high = self.max - self.open
+            self.shadow_high = self.high - self.open
             self.body = self.open - self.close
-            self.shadow_low = self.close - self.min
+            self.shadow_low = self.close - self.low
 
 
 class Interval(object):

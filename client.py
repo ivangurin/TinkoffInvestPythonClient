@@ -347,12 +347,12 @@ class Client(object):
 
             lo_candle = Candle()
 
-            lo_candle.open = ls_candle["o"]
-            lo_candle.max = ls_candle["h"]
-            lo_candle.min = ls_candle["l"]
-            lo_candle.close = ls_candle["c"]
-            lo_candle.volume = ls_candle["v"]
             lo_candle.time = ls_candle["time"]
+            lo_candle.high = ls_candle["h"]
+            lo_candle.open = ls_candle["o"]
+            lo_candle.close = ls_candle["c"]
+            lo_candle.low = ls_candle["l"]
+            lo_candle.volume = ls_candle["v"]
 
             lo_candle.eval()
             
