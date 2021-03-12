@@ -1,537 +1,328 @@
-import datetime
 import pytz
 import requests
 import urllib
 from .objects import *
 
+
 class Client(object):
+    mvUrl: str = "https://api-invest.tinkoff.ru/openapi/"
+    mvToken: str
 
-    url: str = "https://api-invest.tinkoff.ru/openapi/"
-    token: str
+    def __init__(self, ivToken: str):
 
-    def __init__(self, iv_token: str):
-
-        self.token = iv_token
-
-    def getAccounts(self) -> list[Account]:
-
-        lv_url = self.url + "user/accounts"
-
-        try:
-            ls_response = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
-
-        lt_accounts: list[Account] = []
-
-        for ls_account in ls_response["payload"]["accounts"]:
-
-            lo_account = Account()
-
-            lo_account.type = ls_account["brokerAccountType"]
-            lo_account.id = ls_account["brokerAccountId"]
-
-            lt_accounts.append(lo_account)
-
-        return lt_accounts
-
-    def getPortfolioPositions(self) -> list[Position]:
-
-        lv_url = self.url + "portfolio"
-
-        try:
-            ls_response = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        lt_positions: list[Position] = []
-
-        for ls_position in ls_response["payload"]["positions"]:
-
-            lo_position = Position()
-
-            lo_position.figi = ls_position["figi"]
-            lo_position.ticker = ls_position["ticker"]
-            lo_position.name = ls_position["name"]
-            lo_position.quantity = ls_position["balance"]
-            lo_position.lots = ls_position["lots"]
-            lo_position.currency = ls_position["averagePositionPrice"]["currency"]
-            lo_position.price = ls_position["averagePositionPrice"]["value"]
-            lo_position.profit = ls_position["expectedYield"]["value"]
-
-            lt_positions.append(lo_position)
-
-        return lt_positions
-
-    def getPortfolioCurrencies(self) -> list[Currency]:
-
-        lv_url = self.url + "portfolio/currencies"
-
-        try:
-            ls_response = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        lt_currencies: list[Currency] = []
-
-        for ls_currency in ls_response["payload"]["currencies"]:
-
-            lo_currency = Currency()
-
-            lo_currency.id = ls_currency["currency"]
-            lo_currency.balance = ls_currency["balance"]
-
-            lt_currencies.append(lo_currency)
-
-        return lt_currencies
-
-    def getInstruments(self) -> list[Instrument]:
-
-        lt_instruments: list[Instrument] = []
-
-        lt_instruments += self.getCurrencies()
-        lt_instruments += self.getShares()
-        lt_instruments += self.getBonds()
-        lt_instruments += self.getEtfs()
-
-        return lt_instruments
-
-    def getInstrumentByFigi(self, iv_figi: str) -> Instrument:
-
-        ls_params = {
-            "figi": iv_figi
-        }
-
-        lv_url = self.url + "/market/search/by-figi?" + urllib.parse.urlencode(ls_params)
-
-        try:
-            ls_response = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
-
-        lo_instrument = Instrument()
-
-        lo_instrument.type = ls_response["payload"]["type"]
-        lo_instrument.figi = ls_response["payload"]["figi"]
-        lo_instrument.ticker = ls_response["payload"]["ticker"]
-        lo_instrument.isin = ls_response["payload"]["isin"]
-        lo_instrument.name = ls_response["payload"]["name"]
-        lo_instrument.currency = ls_response["payload"]["currency"]
-        lo_instrument.lot = ls_response["payload"]["lot"]
-        lo_instrument.minPriceIncrement = ls_response["payload"]["minPriceIncrement"]
-
-        return lo_instrument
-
-    def getInstrumentByTicker(self, iv_ticker: str) -> Instrument:
-
-        ls_params = {
-            "ticker": iv_ticker
-        }
-
-        lv_url = self.url + "/market/search/by-ticker?" + urllib.parse.urlencode(ls_params)
-
-        try:
-            ls_response = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
-
-        lo_instrument = Instrument()
-
-        lo_instrument.type = ls_response["payload"]["instruments"][0]["type"]
-        lo_instrument.figi = ls_response["payload"]["instruments"][0]["figi"]
-        lo_instrument.ticker = ls_response["payload"]["instruments"][0]["ticker"]
-        lo_instrument.isin = ls_response["payload"]["instruments"][0]["isin"]
-        lo_instrument.name = ls_response["payload"]["instruments"][0]["name"]
-        lo_instrument.currency = ls_response["payload"]["instruments"][0]["currency"]
-        lo_instrument.lot = ls_response["payload"]["instruments"][0]["lot"]
-        lo_instrument.minPriceIncrement = ls_response["payload"]["instruments"][0]["minPriceIncrement"]
-
-        return lo_instrument
+        self.mvToken = ivToken
 
     def getCurrencies(self) -> list[Instrument]:
 
-        lv_url = self.url + "market/currencies"
-
-        try:
-
-            lo_request = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token})
-
-            if lo_request.status_code != requests.codes.ok:
-                raise Exception("Status code: " + lo_request.status_code)
-
-            ls_response = lo_request.json()
-
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
-
-        lt_instruments: list[Instrument] = []
-
-        for ls_instrument in ls_response["payload"]["instruments"]:
-
-            lo_instrument = Instrument()
-
-            lo_instrument.type = ls_instrument["type"]
-            lo_instrument.figi = ls_instrument["figi"]
-            lo_instrument.ticker = ls_instrument["ticker"]
-            lo_instrument.name = ls_instrument["name"]
-            lo_instrument.currency = ls_instrument["currency"]
-            lo_instrument.lot = ls_instrument["lot"]
-            lo_instrument.minPriceIncrement = ls_instrument["minPriceIncrement"]
-
-            lt_instruments.append(lo_instrument)
-
-        return lt_instruments
+        return self.__getInstruments("currencies")
 
     def getShares(self) -> list[Instrument]:
 
-        lv_url = self.url + "market/stocks"
-
-        try:
-
-            lo_request = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token})
-
-            if lo_request.status_code != requests.codes.ok:
-                raise Exception("Status code: " + lo_request.status_code)
-
-            ls_response = lo_request.json()
-
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
-
-        lt_instruments: list[Instrument] = []
-
-        for ls_instrument in ls_response["payload"]["instruments"]:
-
-            lo_instrument = Instrument()
-
-            lo_instrument.type = ls_instrument["type"]
-            lo_instrument.figi = ls_instrument["figi"]
-            lo_instrument.ticker = ls_instrument["ticker"]
-            lo_instrument.isin = ls_instrument["isin"]
-            lo_instrument.name = ls_instrument["name"]
-            lo_instrument.currency = ls_instrument["currency"]
-            lo_instrument.lot = ls_instrument["lot"]
-
-            if "minPriceIncrement" in ls_instrument:
-                lo_instrument.minPriceIncrement = ls_instrument["minPriceIncrement"]
-
-            lt_instruments.append(lo_instrument)
-
-        return lt_instruments
+        return self.__getInstruments("stocks")
 
     def getBonds(self) -> list[Instrument]:
 
-        lv_url = self.url + "market/bonds"
+        return self.__getInstruments("bonds")
 
-        try:
+    def getETFs(self) -> list[Instrument]:
 
-            lo_request = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token})
+        return self.__getInstruments("etfs")
 
-            if lo_request.status_code != requests.codes.ok:
-                raise Exception("Status code: " + lo_request.status_code)
+    def getInstrumentByTicker(self, ivTicker: str) -> Instrument:
 
-            ls_response = lo_request.json()
-
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
-
-        lt_instruments: list[Instrument] = []
-
-        # {"figi":"BBG00T22WKV5","ticker":"SU29013RMFS8","isin":"RU000A101KT1","minPriceIncrement":0.01,
-        # "faceValue":1E+3,"lot":1,"currency":"RUB","name":"ОФЗ 29013","type":"Bond"}
-        for ls_instrument in ls_response["payload"]["instruments"]:
-
-            lo_instrument = Instrument()
-
-            lo_instrument.type = ls_instrument["type"]
-            lo_instrument.figi = ls_instrument["figi"]
-            lo_instrument.ticker = ls_instrument["ticker"]
-            lo_instrument.isin = ls_instrument["isin"]
-            lo_instrument.name = ls_instrument["name"]
-            lo_instrument.currency = ls_instrument["currency"]
-            lo_instrument.lot = ls_instrument["lot"]
-
-            if "minPriceIncrement" in ls_instrument:
-                lo_instrument.minPriceIncrement = ls_instrument["minPriceIncrement"]
-
-            lt_instruments.append(lo_instrument)
-
-        return lt_instruments
-
-    def getEtfs(self) -> list[Instrument]:
-
-        lv_url = self.url + "market/etfs"
-
-        try:
-
-            lo_request = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token})
-
-            if lo_request.status_code != requests.codes.ok:
-                raise Exception("Status code: " + lo_request.status_code)
-
-            ls_response = lo_request.json()
-
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
-
-        lt_instruments: list[Instrument] = []
-
-        # {"figi":"BBG333333333","ticker":"TMOS","isin":"RU000A101X76","minPriceIncrement":0.002,"lot":1,
-        # "currency":"RUB","name":"Тинькофф iMOEX","type":"Etf"}
-        for ls_instrument in ls_response["payload"]["instruments"]:
-
-            lo_instrument = Instrument()
-
-            lo_instrument.type = ls_instrument["type"]
-            lo_instrument.figi = ls_instrument["figi"]
-            lo_instrument.ticker = ls_instrument["ticker"]
-            lo_instrument.isin = ls_instrument["isin"]
-            lo_instrument.name = ls_instrument["name"]
-            lo_instrument.currency = ls_instrument["currency"]
-            lo_instrument.lot = ls_instrument["lot"]
-            lo_instrument.minPriceIncrement = ls_instrument["minPriceIncrement"]
-
-            lt_instruments.append(lo_instrument)
-
-        return lt_instruments
-
-    def getCandles(self, iv_ticker: str, iv_interval: str, iv_days: int = 0, iv_hours: int = 0) -> list[Candle]:
-
-        lo_now = datetime.datetime.now(tz=pytz.timezone("Europe/Moscow"))
-        lo_prev = lo_now - datetime.timedelta(days=iv_days, hours=iv_hours)
-
-        lo_from = datetime.datetime(lo_prev.year, lo_prev.month, lo_prev.day, 0, 0, 0, 0, pytz.timezone("Europe/Moscow"))
-        lo_to = datetime.datetime(lo_now.year, lo_now.month, lo_now.day, 23, 59, 59, 0, pytz.timezone("Europe/Moscow"))
-
-        ls_params = {
-            "figi": self.getInstrumentByTicker(iv_ticker).figi,
-            "interval": iv_interval,
-            "from": lo_from.isoformat(),
-            "to": lo_to.isoformat()
+        lsParams = {
+            "ticker": ivTicker
         }
 
-        lv_url = self.url + "market/candles?" + urllib.parse.urlencode(ls_params)
+        lsResponse = self.__httpRequest(ivMethod="GET", ivPath="market/search/by-ticker", isParams=lsParams)
 
-        try:
-            ls_response = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
+        lsInstrument = Instrument()
 
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
+        lsInstrument.Text = lsResponse["payload"]["instruments"][0]["name"]
+        lsInstrument.Type = lsResponse["payload"]["instruments"][0]["type"]
+        lsInstrument.FIGI = lsResponse["payload"]["instruments"][0]["figi"]
+        lsInstrument.Ticker = lsResponse["payload"]["instruments"][0]["ticker"]
+        lsInstrument.ISIN = lsResponse["payload"]["instruments"][0]["isin"]
+        lsInstrument.Currency = lsResponse["payload"]["instruments"][0]["currency"]
+        lsInstrument.Lot = lsResponse["payload"]["instruments"][0]["lot"]
+        lsInstrument.MinPriceIncrement = lsResponse["payload"]["instruments"][0]["minPriceIncrement"]
 
-        lt_candles: list[Candle] = []
+        return lsInstrument
 
-        for ls_candle in ls_response["payload"]["candles"]:
+    def getInstrumentByFIGI(self, ivFIGI: str) -> Instrument:
 
-            lo_candle = Candle()
-
-            lo_candle.time = ls_candle["time"]
-            lo_candle.high = ls_candle["h"]
-            lo_candle.open = ls_candle["o"]
-            lo_candle.close = ls_candle["c"]
-            lo_candle.low = ls_candle["l"]
-            lo_candle.volume = ls_candle["v"]
-
-            lo_candle.eval()
-            
-            lt_candles.append(lo_candle)
-
-        return lt_candles
-
-    def getOperations(self,
-            io_from: datetime = datetime.datetime.now(tz=pytz.timezone("Europe/Moscow")) - datetime.timedelta(days=365),
-            io_to: datetime = datetime.datetime.now(tz=pytz.timezone("Europe/Moscow")),
-            iv_ticker: str = "") -> list[Operation]:
-
-        ls_params = {
-            "from": io_from.isoformat(),
-            "to": io_to.isoformat()
+        lsParams = {
+            "figi": ivFIGI
         }
 
-        if iv_ticker != "":
-            ls_params["figi"] = self.getInstrumentByTicker(iv_ticker).figi
+        lsResponse = self.__httpRequest(ivMethod="GET", ivPath="market/search/by-figi", isParams=lsParams)
 
-        lv_url = self.url + "operations?" + urllib.parse.urlencode(ls_params)
+        lsInstrument = Instrument()
 
-        try:
+        lsInstrument.Text = lsResponse["payload"]["name"]
+        lsInstrument.Type = lsResponse["payload"]["type"]
+        lsInstrument.FIGI = lsResponse["payload"]["figi"]
+        lsInstrument.Ticker = lsResponse["payload"]["ticker"]
+        lsInstrument.ISIN = lsResponse["payload"]["isin"]
+        lsInstrument.Currency = lsResponse["payload"]["currency"]
+        lsInstrument.Lot = lsResponse["payload"]["lot"]
+        lsInstrument.MinPriceIncrement = lsResponse["payload"]["minPriceIncrement"]
 
-            lo_request = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token})
+        return lsInstrument
 
-            if lo_request.status_code != requests.codes.ok:
-                raise Exception("Status code: " + lo_request.status_code)
+    def getCandles(self, ivTicker: str, ivInterval: str, ioFrom: datetime,
+                   ioTo: datetime = datetime.datetime.now(tz=pytz.timezone("Europe/Moscow"))) -> list[Candle]:
 
-            ls_response = lo_request.json()
+        lsParams = {
+            "figi": self.getInstrumentByTicker(ivTicker).FIGI,
+            "interval": ivInterval,
+            "from": ioFrom.isoformat(),
+            "to": ioTo.isoformat()
+        }
 
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
+        lsResponse = self.__httpRequest(ivMethod="GET", ivPath="market/candles", isParams=lsParams)
 
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
+        ltCandles: list[Candle] = []
 
-        lt_operations: list[Operation] = []
+        for lsResponseCandle in lsResponse["payload"]["candles"]:
+            lsCandle = Candle()
 
-        for ls_operation in ls_response["payload"]["operations"]:
+            lsCandle.Time = lsResponseCandle["time"]
+            lsCandle.High = lsResponseCandle["h"]
+            lsCandle.Open = lsResponseCandle["o"]
+            lsCandle.Close = lsResponseCandle["c"]
+            lsCandle.Low = lsResponseCandle["l"]
+            lsCandle.Volume = lsResponseCandle["v"]
 
-            if ls_operation["operationType"] != "Buy" and \
-               ls_operation["operationType"] != "BuyCard" and \
-               ls_operation["operationType"] != "Sell" and \
-               ls_operation["operationType"] != "Dividend" and \
-               ls_operation["operationType"] != "TaxDividend" and \
-               ls_operation["operationType"] != "Coupon":
+            if lsCandle.Open < lsCandle.Close:
+                lsCandle.Type = "green"
+                lsCandle.ShadowHigh = lsCandle.High - lsCandle.Close
+                lsCandle.Body = lsCandle.Close - lsCandle.Open
+                lsCandle.ShadowLow = lsCandle.Open - lsCandle.Low
+            else:
+                lsCandle.Type = "red"
+                lsCandle.ShadowHigh = lsCandle.High - lsCandle.Open
+                lsCandle.Body = lsCandle.Open - lsCandle.Close
+                lsCandle.ShadowLow = lsCandle.Close - lsCandle.Low
+
+            ltCandles.append(lsCandle)
+
+        return ltCandles
+
+    def getAccounts(self) -> list[Account]:
+
+        lsResponse = self.__httpRequest(ivMethod="GET", ivPath="user/accounts")
+
+        if lsResponse["status"] == "Error":
+            raise Exception(lsResponse["payload"]["message"])
+
+        ltAccounts: list[Account] = []
+
+        for lsAccount in lsResponse["payload"]["accounts"]:
+            lsAccount = Account()
+
+            lsAccount.ID = lsAccount["brokerAccountId"]
+            lsAccount.Text = lsAccount["brokerAccountType"]
+
+            ltAccounts.append(lsAccount)
+
+        return ltAccounts
+
+    def getPositions(self) -> list[Position]:
+
+        lsResponse = self.__httpRequest(ivMethod="GET", ivPath="portfolio")
+
+        if lsResponse["status"] == "Error":
+            raise Exception(lsResponse["payload"]["message"])
+
+        ltPositions: list[Position] = []
+
+        for lsResponsePosition in lsResponse["payload"]["positions"]:
+            lsPosition = Position()
+
+            lsPosition.FIGI = lsResponsePosition["figi"]
+            lsPosition.Ticker = lsResponsePosition["ticker"]
+            lsPosition.Text = lsResponsePosition["name"]
+            lsPosition.Quantity = lsResponsePosition["balance"]
+            lsPosition.Lots = lsResponsePosition["lots"]
+            lsPosition.Currency = lsResponsePosition["averagePositionPrice"]["currency"]
+            lsPosition.Price = lsResponsePosition["averagePositionPrice"]["value"]
+            lsPosition.Profit = lsResponsePosition["expectedYield"]["value"]
+
+            ltPositions.append(lsPosition)
+
+        return ltPositions
+
+    def getOperations(self, ivTicker: str, ioFrom: datetime,
+                      ioTo: datetime = datetime.datetime.now(tz=pytz.timezone("Europe/Moscow"))) -> list[
+        Operation]:
+
+        lsParams = {
+            "from": ioFrom.isoformat(),
+            "to": ioTo.isoformat()
+        }
+
+        if ivTicker != "":
+            lsParams["figi"] = self.getInstrumentByTicker(ivTicker).FIGI
+
+        lsResponse = self.__httpRequest(ivMethod="GET", ivPath="operations", isParams=lsParams)
+
+        ltOperations: list[Operation] = []
+
+        for lsResponseOperation in lsResponse["payload"]["operations"]:
+
+            if lsResponseOperation["operationType"] != "Buy" and \
+                    lsResponseOperation["operationType"] != "BuyCard" and \
+                    lsResponseOperation["operationType"] != "Sell" and \
+                    lsResponseOperation["operationType"] != "Dividend" and \
+                    lsResponseOperation["operationType"] != "TaxDividend" and \
+                    lsResponseOperation["operationType"] != "Coupon" and \
+                    lsResponseOperation["operationType"] != "TaxCoupon":
                 continue
 
-            if ls_operation["status"] != "Done":
+            if lsResponseOperation["status"] != "Done":
                 continue
 
-            if ls_operation["figi"] == "BBG005DXJS36" and \
-               ls_operation["currency"] == "RUB":
-                ls_operation["figi"] = "BBG00QPYJ5H0"
+            if lsResponseOperation["operationType"] == "BuyCard":
+                lsResponseOperation["operationType"] = "Buy"
 
-            lo_operation = Operation()
+            lsOperation = Operation()
 
-            lo_operation.id = ls_operation["id"]
-            lo_operation.type = ls_operation["operationType"]
-            lo_operation.figi = ls_operation["figi"]
-            lo_operation.currency = ls_operation["currency"]
-            lo_operation.date = ls_operation["date"]
+            lsOperation.ID = lsResponseOperation["id"]
+            lsOperation.Type = lsResponseOperation["operationType"]
+            lsOperation.FIGI = lsResponseOperation["figi"]
+            lsOperation.Currency = lsResponseOperation["currency"]
+            lsOperation.Date = lsResponseOperation["date"]
+            lsOperation.Value = abs(lsResponseOperation["payment"])
 
-            if lo_operation.type == "BuyCard":
-                lo_operation.type = "Buy"
+            if "quantityExecuted" in lsResponseOperation:
+                lsOperation.Quantity = lsResponseOperation["quantityExecuted"]
 
-            lo_operation.value = abs(ls_operation["payment"])
+            if "price" in lsResponseOperation:
+                lsOperation.Price = abs(lsResponseOperation["price"])
 
-            if "quantityExecuted" in ls_operation:
-                lo_operation.quantity = ls_operation["quantityExecuted"]
+            if "commission" in lsResponseOperation:
+                lsOperation.Commission = abs(lsResponseOperation["commission"]["value"])
 
-            if "price" in ls_operation:
-                lo_operation.price = abs(ls_operation["price"])
+            ltOperations.insert(0, lsOperation)
 
-            if "commission" in ls_operation:
-                lo_operation.commission = abs(ls_operation["commission"]["value"])
-
-            lt_operations.insert(0, lo_operation)
-
-        return lt_operations
+        return ltOperations
 
     def getOrders(self) -> list[Order]:
 
-        lv_url = self.url + "orders"
+        lsResponse = self.__httpRequest(ivMethod="GET", ivPath="orders")
 
-        try:
-            ls_response = requests.get(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
+        ltOrders: list[Order] = []
 
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
+        for lsResponseOrder in lsResponse["payload"]:
+            lsOrder = Order()
 
-        lt_orders: list[Order] = []
+            lsOrder.ID = lsResponseOrder["orderId"]
+            lsOrder.FIGI = lsResponseOrder["figi"]
+            lsOrder.Type = lsResponseOrder["type"]
+            lsOrder.Operation = lsResponseOrder["operation"]
+            lsOrder.Status = lsResponseOrder["status"]
+            lsOrder.Price = lsResponseOrder["price"]
+            lsOrder.RequestedLots = lsResponseOrder["requestedLots"]
+            lsOrder.ExecutedLotsxecutedLots = lsResponseOrder["executedLots"]
 
-        for ls_order in ls_response["payload"]:
+            ltOrders.append(lsOrder)
 
-            lo_order = Order()
+        return ltOrders
 
-            lo_order.id = ls_order["orderId"]
-            lo_order.figi = ls_order["figi"]
-            lo_order.type = ls_order["type"]
-            lo_order.operation = ls_order["operation"]
-            lo_order.status = ls_order["status"]
-            lo_order.price = ls_order["price"]
-            lo_order.requestedLots = ls_order["requestedLots"]
-            lo_order.executedLots = ls_order["executedLots"]
+    def createLimitOrder(self, ivTicker: str, ivOperation: str, ivLots: int, ivPrice: float):
 
-            lt_orders.append(lo_order)
+        return self.__createOrder(ivType=Order.typeLimit, ivTicker=ivTicker, ivOperation=ivOperation,
+                                  ivLots=ivLots,
+                                  ivPrice=ivPrice)
 
-        return lt_orders
+    def createMarketOrder(self, ivTicker: str, ivOperation: str, ivLots: int):
 
-    def createLimitOrder(self, iv_ticker: str, iv_operation: str, iv_lots: int, iv_price: float, iv_account_id: str = ""):
+        return self.__createOrder(ivType=Order.typeMarket, ivTicker=ivTicker, ivOperation=ivOperation,
+                                  ivLots=ivLots)
 
-        ls_params = {
-            "figi": self.getInstrumentByTicker(iv_ticker).figi
+    def cancelOrder(self, ivOrderID: str):
+
+        lsParams = {
+            "orderId": ivOrderID
         }
 
-        if iv_account_id != "":
-            ls_params["brokerAccountId"] = iv_account_id
-
-        ls_data = {
-            "lots": iv_lots,
-            "operation": iv_operation,
-            "price": iv_price,
-        }
-
-        lv_url = self.url + "orders/limit-order?" + urllib.parse.urlencode(ls_params)
-
-        try:
-            lo_response = requests.post(lv_url, headers={"Authorization": "Bearer " + self.token}, json=ls_data)
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        ls_response = lo_response.json()
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
-
-        return ls_response["payload"]["orderId"]
-
-    def createMarketOrder(self, iv_ticker: str, iv_operation: str, iv_lots: int):
-
-        ls_params = {
-            "figi": self.getInstrumentByTicker(iv_ticker).figi
-        }
-
-        ls_data = {
-            "operation": iv_operation,
-            "lots": iv_lots
-        }
-
-        lv_url = self.url + "/orders/market-order?" + urllib.parse.urlencode(ls_params)
-
-        try:
-            ls_response = requests.post(lv_url, headers={"Authorization": "Bearer " + self.token}, json=ls_data).json()
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
-
-        return ls_response["payload"]["orderId"]
-
-    def cancelOrder(self, iv_id: str):
-
-        ls_params = {
-            "orderId": iv_id
-        }
-
-        lv_url = self.url + "/orders/cancel?" + urllib.parse.urlencode(ls_params)
-
-        try:
-            ls_response = requests.post(lv_url, headers={"Authorization": "Bearer " + self.token}).json()
-        except Exception as lx_exception:
-            raise Exception('Failed to get data from {url}: {text}'.format(url=lv_url, text=str(lx_exception)))
-
-        if ls_response["status"] == "Error":
-            raise Exception(ls_response["payload"]["message"])
+        self.__httpRequest(ivMethod="POST", ivPath="orders/cancel", isParams=lsParams)
 
         return True
+
+    def __getInstruments(self, ivType: str) -> list[Instrument]:
+
+        lsResponse = self.__httpRequest(ivMethod="GET", ivPath="market/" + ivType)
+
+        ltInstruments: list[Instrument] = []
+
+        for lsResponseInstrument in lsResponse["payload"]["instruments"]:
+
+            lsInstrument = Instrument()
+
+            lsInstrument.Text = lsResponseInstrument["name"]
+            lsInstrument.Type = lsResponseInstrument["type"]
+            lsInstrument.FIGI = lsResponseInstrument["figi"]
+            lsInstrument.Ticker = lsResponseInstrument["ticker"]
+
+            if "isin" in lsResponseInstrument:
+                lsInstrument.ISIN = lsResponseInstrument["isin"]
+
+            lsInstrument.Currency = lsResponseInstrument["currency"]
+            lsInstrument.Lot = lsResponseInstrument["lot"]
+
+            if "minPriceIncrement" in lsResponseInstrument:
+                lsInstrument.MinPriceIncrement = lsResponseInstrument["minPriceIncrement"]
+
+            ltInstruments.append(lsInstrument)
+
+        return ltInstruments
+
+    def __createOrder(self, ivType: str, ivTicker: str, ivOperation: str, ivLots: int, ivPrice: float = 0) -> str:
+
+        lsParams = {
+            "figi": self.getInstrumentByTicker(ivTicker).FIGI
+        }
+
+        lsData = {
+            "operation": ivOperation,
+            "lots": ivLots,
+            "price": ivPrice,
+        }
+
+        lsResponse = self.__httpRequest(ivMethod="POST", ivPath="orders/" + ivType + "-order", isParams=lsParams,
+                                        isData=lsData)
+
+        return lsResponse["payload"]["orderId"]
+
+    def __httpRequest(self, ivMethod: str, ivPath: str, isParams={}, isData={}) -> str:
+
+        lvUrl = self.mvUrl + ivPath + "?" + urllib.parse.urlencode(isParams)
+
+        lsHeader = {
+            "Authorization": "Bearer " + self.mvToken
+        }
+
+        try:
+
+            if ivMethod == "GET":
+
+                loRequest = requests.get(lvUrl, headers=lsHeader)
+
+            elif ivMethod == "POST":
+
+                loRequest = requests.post(lvUrl, headers=lsHeader, json=isData)
+
+        except Exception as loException:
+            raise Exception('Failed to get data from {url}: {text}'.format(url=lvUrl, text=str(loException)))
+
+        if loRequest.status_code != requests.codes.ok:
+            raise Exception("HTTP returns code: " + str(loRequest.status_code))
+
+        lsResponse = loRequest.json()
+
+        if lsResponse["status"] == "Error":
+            raise Exception(lsResponse["payload"]["message"])
+
+        return lsResponse

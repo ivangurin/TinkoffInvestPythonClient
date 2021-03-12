@@ -1,114 +1,81 @@
 import datetime
 
 
-class Account(object):
+class Instrument(object):
+    Text: str
+    Type: str
+    Ticker: str
+    FIGI: str
+    ISIN: str
+    Currency: str
+    Lot: int
+    MinPriceIncrement: float
 
-    type: str
-    id: str
+
+class Candle(object):
+    Time: str
+    High: float
+    Open: float
+    Close: float
+    Low: float
+    Volume: float
+    ShadowHigh: float
+    ShadowLow: float
+    Body: float
+    Type: str
+
+
+class Account(object):
+    ID: str
+    Text: str
 
 
 class Position(object):
-
-    figi: str
-    ticker: str
-    name: str
-    quantity: int
-    lots: int
-    currency: str
-    price: float
-    profit: float
-
-
-class Currency(object):
-
-    id: str
-    balance: float
-    blocked: str
+    FIGI: str
+    Ticker: str
+    Text: str
+    Quantity: float
+    Lots: int
+    Currency: str
+    Price: float
+    Profit: float
 
 
 class Order(object):
+    typeLimit = "limit"
+    typeMarket = "market"
 
-    id: str
-    figi: float
-    type: str
-    operation: str
-    price: float
-    status: str
-    requestedLots: int
-    executedLots: int
-
-
-class Instrument(object):
-
-    type: str
-    ticker: str
-    figi: str
-    isin: str
-    name: str
-    currency: str
-    lot: int
-    minPriceIncrement: float
+    ID: str
+    FIGI: float
+    Type: str
+    Operation: str
+    Price: float
+    Status: str
+    RequestedLots: int
+    ExecutedLots: int
 
 
 class Operation(object):
-    id: str
-    type: str
-    figi: str
-    quantity: int
-    price: float
-    value: float
-    commission: float
-    currency: str
-    date: datetime
-
-    def __init__(self):
-        self.id = ""
-        self.type = ""
-        self.figi = ""
-        self.quantity = ""
-        self.currency = ""
-        self.price = 0
-        self.value = 0
-        self.commission = 0
-
-class Candle(object):
-
-    time: str
-    high: int
-    open: int
-    close: int
-    low: int
-    volume: int
-    shadow_high: int
-    shadow_low: int
-    body: int
-    type: str
-
-    def eval(self):
-
-        if self.open < self.close:
-            self.type = "green"
-            self.shadow_high = self.high - self.close
-            self.body = self.close - self.open
-            self.shadow_low = self.open - self.low
-        else:
-            self.type = "red"
-            self.shadow_high = self.high - self.open
-            self.body = self.open - self.close
-            self.shadow_low = self.close - self.low
+    ID: str
+    Type: str
+    FIGI: str
+    Quantity: float
+    Price: float
+    Value: float
+    Commission: float
+    Currency: str
+    Date: datetime
 
 
 class Interval(object):
-
-    min1 = "1min"
-    min2 = "2min"
-    min3 = "3min"
-    min5 = "5min"
-    min10 = "10min"
-    min15 = "15min"
-    min30 = "30min"
-    hour = "hour"
-    day = "day"
-    week = "week"
-    month = "month"
-
+    Min1 = "1min"
+    Min2 = "2min"
+    Min3 = "3min"
+    Min5 = "5min"
+    Min10 = "10min"
+    Min15 = "15min"
+    Min30 = "30min"
+    Hour = "hour"
+    Day = "day"
+    Week = "week"
+    Month = "month"
